@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const secureStorage = FlutterSecureStorage();
-const String baseUrl = 'http://172.20.10.2:8000/api';
+const String baseUrl = 'http://192.168.18.60:8000/api';
 
 // Function to get default headers, including Authorization if token is available
 Future<Map<String, String>> getDefaultHeaders() async {
@@ -46,7 +46,7 @@ Future<void> login(String email, String password) async {
 // Register function
 Future<void> register(
     String name, String email, String password, String confirmPassword) async {
-  final url = Uri.parse("http://172.0.0.2:8000/api/register");
+  final url = Uri.parse("$baseUrl/api/register");
 
   try {
     final response = await http.post(
@@ -63,7 +63,6 @@ Future<void> register(
     if (response.statusCode == 201) {
       final data = json.decode(response.body);
       print("Pendaftaran berhasil: ${data['message']}");
-      // Optionally log in after registration
       await login(email, password);
     } else {
       final error = json.decode(response.body);
@@ -75,37 +74,53 @@ Future<void> register(
   }
 }
 
-// Logout and delete token from secure storage
-Future<void> logout() async {
-  await secureStorage.delete(key: 'access_token');
-  print('Access token successfully deleted.');
-}
-
-// Delete user account
-Future<void> deleteUserAccount() async {
+Future<void> delete() async {
   try {
     final accessToken = await secureStorage.read(key: 'access_token');
     if (accessToken == null) {
       throw Exception('No access token found. Please log in again.');
     }
 
-    final response = await http.delete(
-      Uri.parse('$baseUrl/user/delete'), // Update with correct API endpoint
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
+    // Mendapatkan ID pengguna dari API jika diperlukan
+    final response = await http.get(
+      Uri.parse(
+          '$baseUrl/user/profile'), // Memastikan untuk mendapatkan ID pengguna
+      headers: {'Authorization': 'Bearer $accessToken'},
     );
 
     if (response.statusCode == 200) {
-      await secureStorage.delete(key: 'access_token');
-      print('User account successfully deleted.');
+      final data = json.decode(response.body);
+      final userId = data['id']; // Ambil ID pengguna dari respons
+
+      // Kirim permintaan DELETE dengan ID pengguna
+      final deleteResponse = await http.delete(
+        Uri.parse(
+            '$baseUrl/user/delete/$userId'), // Kirim ID pengguna untuk dihapus
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (deleteResponse.statusCode == 200) {
+        // Menghapus token setelah penghapusan berhasil
+        await secureStorage.delete(key: 'access_token');
+        print('User account successfully deleted.');
+      } else {
+        final error = json.decode(deleteResponse.body);
+        throw Exception(
+            'Failed to delete user: ${error['message'] ?? 'Server error'}');
+      }
     } else {
-      final error = json.decode(response.body);
-      throw Exception(
-          'Failed to delete user: ${error['message'] ?? 'Server error'}');
+      throw Exception('Failed to fetch user data: ${response.body}');
     }
   } catch (e) {
     throw Exception('An error occurred: $e');
+  }
+
+// Logout and delete token from secure storage
+  Future<void> logout() async {
+    await secureStorage.delete(key: 'access_token');
+    print('Access token successfully deleted.');
   }
 }

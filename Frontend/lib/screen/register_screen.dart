@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert'; // For json encoding/decoding
+import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -16,11 +16,8 @@ class _RegisterPageState extends State<RegisterPage> {
       TextEditingController();
   bool _isLoading = false;
 
-  // URL of your backend API
-  final String _url =
-      'http://172.20.10.2:8000/api/auth/register'; // Replace with actual URL
+  final String _url = 'http://192.168.18.60:8000/api/auth/register';
 
-  // Function to send registration data to backend
   Future<void> _register() async {
     setState(() {
       _isLoading = true;
@@ -41,20 +38,31 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (response.statusCode == 200) {
-        // Registration successful
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created successfully!')),
+          SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
         );
         Navigator.pushReplacementNamed(context, '/login');
       } else {
-        // If the server returns a 400 or 500 error
+        final Map<String, dynamic> errorResponse = json.decode(response.body);
+        final errorMessage =
+            errorResponse['message'] ?? 'Failed to create account';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create account: ${response.body}')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       setState(() {
@@ -70,7 +78,7 @@ class _RegisterPageState extends State<RegisterPage> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 215, 163, 67),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(15.0),
         child: Form(
           key: _formKey,
@@ -86,7 +94,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Name field
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -103,7 +110,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               const SizedBox(height: 16),
-              // Email field
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -116,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your email';
                   } else if (!RegExp(
-                          r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+                          r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+$")
                       .hasMatch(value)) {
                     return 'Please enter a valid email';
                   }
@@ -124,7 +130,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               const SizedBox(height: 16),
-              // Password field
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
@@ -144,7 +149,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               const SizedBox(height: 16),
-              // Confirm Password field
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
@@ -162,7 +166,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               const SizedBox(height: 24),
-              // Register button
               ElevatedButton(
                 onPressed: _isLoading
                     ? null
@@ -172,7 +175,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         }
                       },
                 child: _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
                     : const Text("Register"),
               ),
             ],

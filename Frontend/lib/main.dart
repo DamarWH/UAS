@@ -1,3 +1,4 @@
+import 'package:frontend/screen/brand_page.dart';
 import 'package:frontend/screen/home_page.dart';
 import 'package:frontend/screen/login_screen.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,8 @@ class MyApp extends StatelessWidget {
           '/login': (context) => LoginScreen(),
           '/profile': (context) => ProfilePage(),
           '/home': (context) => HomeScreen(),
-          '/shoes': (context) => AddShoesScreen()
+          '/shoes': (context) => AddShoesScreen(),
+          '/brands': (context) => BrandPage()
         });
   }
 }

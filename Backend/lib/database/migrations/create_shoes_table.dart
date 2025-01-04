@@ -7,8 +7,7 @@ class CreateSepatuTable extends Migration {
     await createTableNotExists('shoes', () {
       primary('shoes_id');
       bigIncrements('shoes_id');
-      bigInt('brand_id',
-          unsigned: true); // Pastikan ini merujuk dengan benar ke tabel brands
+      bigInt('brand_id', unsigned: true);
       string('sepatu_type');
       string('model_name');
       integer('size');

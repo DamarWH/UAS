@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screen/register_screen.dart';
-import 'package:frontend/service/auth_login.dart';
+import 'package:frontend/service/Service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,16 +23,12 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await login(
           _emailController.text, _passwordController.text); // Your login logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login berhasil!")),
-      );
-
+      _showSnackBar("Login berhasil!", const Color.fromARGB(255, 76, 175, 80),
+          Icons.check_circle);
       // Navigate to HomeScreen after successful login
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login gagal: $e")),
-      );
+      _showSnackBar("Login gagal: $e", Colors.red, Icons.error);
     } finally {
       setState(() {
         _isLoading = false;
@@ -40,13 +36,39 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Show custom SnackBar
+  void _showSnackBar(String message, Color color, IconData icon) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        behavior: SnackBarBehavior.floating,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   // Navigate to RegisterPage
   void navigateToRegister() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            RegisterPage(), // Replace RegisterPage with your actual registration screen
+        builder: (context) => RegisterPage(),
       ),
     );
   }
@@ -73,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24), // Added a comma here
+              const SizedBox(height: 24),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(

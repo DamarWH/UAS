@@ -1,18 +1,19 @@
-import 'package:backend/app/models/brand.dart';
+import 'dart:io';
 import 'package:backend/app/models/shoes.dart';
 import 'package:vania/vania.dart';
 import 'package:vania/src/exception/validation_exception.dart';
 
 class ShoesController extends Controller {
+  // Menampilkan semua data sepatu
   Future<Response> index() async {
     try {
       var shoes = await Shoes().query().get();
-      return Response.json({'data': shoes});
+      return Response.json({'data': shoes}, HttpStatus.ok);
     } catch (e) {
       return Response.json({
         'message': 'Terjadi kesalahan di sisi server.',
         'error': e.toString(),
-      }, 500);
+      }, HttpStatus.internalServerError);
     }
   }
 
@@ -24,22 +25,15 @@ class ShoesController extends Controller {
       if (shoe == null) {
         return Response.json({
           'message': 'Sepatu dengan ID $id tidak ditemukan.',
-        }, 404);
+        }, HttpStatus.notFound);
       }
 
-      var brand = await Brand()
-          .query()
-          .where('brand_id', '=', shoe['brand_id'])
-          .first();
-
-      return Response.json({
-        'data': {'shoe': shoe, 'brand': brand},
-      }, 200);
+      return Response.json({'data': shoe}, HttpStatus.ok);
     } catch (e) {
       return Response.json({
         'message': 'Terjadi kesalahan di sisi server.',
         'error': e.toString(),
-      }, 500);
+      }, HttpStatus.internalServerError);
     }
   }
 
@@ -48,33 +42,26 @@ class ShoesController extends Controller {
     try {
       // Validasi input
       request.validate({
-        'brand_id': 'required|integer',
         'sepatu_type': 'required|string',
         'model_name': 'required|string',
         'size': 'required|integer',
         'harga': 'required|double',
         'warna': 'required|string',
+        'image_url': 'nullable|string',
+        'manual_url': 'nullable|string',
+        'brand_id': 'required|integer',
       }, {
-        'brand_id': 'Brand ID harus diisi dan berupa angka.',
-        'sepatu_type': 'Tipe sepatu harus diisi.',
-        'model_name': 'Nama model sepatu harus diisi.',
-        'size': 'Ukuran sepatu harus berupa angka.',
-        'harga': 'Harga sepatu harus berupa angka desimal.',
-        'warna': 'Warna sepatu harus diisi.',
+        'sepatu_type.required': 'Tipe sepatu harus diisi.',
+        'model_name.required': 'Nama model harus diisi.',
+        'size.required': 'Ukuran harus diisi.',
+        'size.integer': 'Ukuran harus berupa angka.',
+        'harga.required': 'Harga harus diisi.',
+        'harga.double': 'Harga harus berupa angka desimal.',
+        'warna.required': 'Warna harus diisi.',
+        'brand_id.required': 'ID brand harus diisi.',
       });
 
       var input = request.input();
-
-      // Memastikan brand_id valid
-      var brand = await Brand()
-          .query()
-          .where('brand_id', '=', input['brand_id'])
-          .first();
-      if (brand == null) {
-        return Response.json({
-          'message': 'Brand dengan ID ${input['brand_id']} tidak ditemukan.',
-        }, 400);
-      }
 
       // Menambahkan sepatu baru
       await Shoes().query().insert(input);
@@ -82,62 +69,78 @@ class ShoesController extends Controller {
       return Response.json({
         'message': 'Sepatu berhasil ditambahkan.',
         'data': input,
-      }, 201);
+      }, HttpStatus.created);
     } catch (e) {
       if (e is ValidationException) {
-        return Response.json({'errors': e.message}, 400);
+        return Response.json({'errors': e.message}, HttpStatus.badRequest);
       }
       return Response.json({
         'message': 'Terjadi kesalahan di sisi server.',
         'error': e.toString(),
-      }, 500);
+      }, HttpStatus.internalServerError);
     }
   }
 
-  // Mengupdate sepatu berdasarkan ID
+  // Memperbarui data sepatu berdasarkan ID
   Future<Response> update(Request request, int id) async {
     try {
-      var shoe = await Shoes().query().where('shoes_id', '=', id).first();
-
-      if (shoe == null) {
-        return Response.json({
-          'message': 'Sepatu dengan ID $id tidak ditemukan.',
-        }, 404);
-      }
-
+      // Validasi input
       request.validate({
-        'brand_id': 'required|integer',
         'sepatu_type': 'required|string',
         'model_name': 'required|string',
         'size': 'required|integer',
-        'harga': 'required|double',
+        'harga': 'required|double|min:0',
         'warna': 'required|string',
+        'image_url': 'nullable|string',
+        'manual_url': 'nullable|string',
+        'brand_id': 'required|integer',
       }, {
-        'brand_id': 'Brand ID harus diisi dan berupa angka.',
-        'sepatu_type': 'Tipe sepatu harus diisi.',
-        'model_name': 'Nama model sepatu harus diisi.',
-        'size': 'Ukuran sepatu harus berupa angka.',
-        'harga': 'Harga sepatu harus berupa angka desimal.',
-        'warna': 'Warna sepatu harus diisi.',
+        'sepatu_type.required': 'Tipe sepatu harus diisi.',
+        'model_name.required': 'Nama model harus diisi.',
+        'size.required': 'Ukuran harus diisi.',
+        'size.integer': 'Ukuran harus berupa angka.',
+        'harga.required': 'Harga harus diisi.',
+        'harga.double': 'Harga harus berupa angka desimal.',
+        'harga.min': 'Harga tidak boleh negatif.',
+        'warna.required': 'Warna harus diisi.',
+        'brand_id.required': 'ID brand harus diisi.',
       });
 
+      var shoe = await Shoes().query().where('shoes_id', '=', id).first();
+      if (shoe == null) {
+        return Response.json({
+          'message': 'Sepatu dengan ID $id tidak ditemukan.',
+        }, HttpStatus.notFound);
+      }
+
       var input = request.input();
+      input.remove('shoes_id'); // Hindari pengubahan ID
 
-      // Memperbarui data sepatu
-      await Shoes().query().where('shoes_id', '=', id).update(input);
+      // Memperbarui sepatu
+      var updated =
+          await Shoes().query().where('shoes_id', '=', id).update(input);
 
+      if (updated == 0) {
+        return Response.json({
+          'message': 'Tidak ada perubahan pada data sepatu.',
+        }, HttpStatus.noContent); // Return No Content when no update occurred
+      }
+
+      var updatedShoe =
+          await Shoes().query().where('shoes_id', '=', id).first();
       return Response.json({
         'message': 'Sepatu berhasil diperbarui.',
-        'data': input,
-      }, 200);
+        'data': updatedShoe,
+      }, HttpStatus.ok);
     } catch (e) {
       if (e is ValidationException) {
-        return Response.json({'errors': e.message}, 400);
+        return Response.json({'errors': e.message}, HttpStatus.badRequest);
       }
+      print('Error: $e');
       return Response.json({
         'message': 'Terjadi kesalahan di sisi server.',
         'error': e.toString(),
-      }, 500);
+      }, HttpStatus.internalServerError);
     }
   }
 
@@ -149,20 +152,19 @@ class ShoesController extends Controller {
       if (shoe == null) {
         return Response.json({
           'message': 'Sepatu dengan ID $id tidak ditemukan.',
-        }, 404);
+        }, HttpStatus.notFound);
       }
 
-      // Menghapus sepatu
       await Shoes().query().where('shoes_id', '=', id).delete();
 
       return Response.json({
         'message': 'Sepatu berhasil dihapus.',
-      }, 200);
+      }, HttpStatus.ok);
     } catch (e) {
       return Response.json({
         'message': 'Terjadi kesalahan di sisi server.',
         'error': e.toString(),
-      }, 500);
+      }, HttpStatus.internalServerError);
     }
   }
 }

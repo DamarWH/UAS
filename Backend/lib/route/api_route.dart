@@ -30,8 +30,10 @@ class ApiRoute implements Route {
       Router.get('shoes', shoesController.index); // List all shoes
       Router.get('shoes/{id}', shoesController.show); // Get shoe by ID
       Router.post('shoes', shoesController.create); // Create a new shoe
-      Router.put('shoes/{id}', shoesController.update); // Update a shoe
-      Router.delete('shoes/{id}', shoesController.destroy); // Delete a shoe
+      Router.put(
+          'shoes/update/{shoes_id}', shoesController.update); // Update a shoe
+      Router.delete(
+          'shoes/delete/{id}', shoesController.destroy); // Delete a shoe
     }, middleware: [AuthenticateMiddleware()]);
 
     /// Favorites routes
@@ -44,8 +46,9 @@ class ApiRoute implements Route {
     /// User routes
     Router.group(() {
       Router.get('profile', userController.index);
-      Router.put('updateusername', userController.updateUsername);
+      Router.put('update', userController.updateProfile);
       Router.post('forgotpass', userController.forgotPassword);
+      Router.delete('/user/delete', userController.delete);
     }, prefix: 'user', middleware: [AuthenticateMiddleware()]);
   }
 }

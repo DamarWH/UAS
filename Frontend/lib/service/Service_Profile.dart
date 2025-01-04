@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 const secureStorage = FlutterSecureStorage();
 
 // Base URL API
-const String baseUrl = 'http://172.20.10.2:8000/api';
+const String baseUrl = 'http:/192.168.18.60:8000/api';
 
 // Fungsi untuk mendapatkan header dengan token
 Future<Map<String, String>> getHeadersWithToken() async {
